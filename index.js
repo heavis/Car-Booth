@@ -137,7 +137,7 @@ CarBooth.prototype.loadCarDynamicPart = function(name, carObjects, options){
         var body_material = body_mesh.material.materials[0];
         body_material.envMap = self.textureCube;
         body_material.transparent = true;
-        body_material.reflectivity = 0.6;
+        body_material.reflectivity = 0.53;
         if(bodyColor){
             body_material.color = new THREE.Color(bodyColor, 1.0);
             body_material.ambient = new THREE.Color(bodyColor, 1.0);
