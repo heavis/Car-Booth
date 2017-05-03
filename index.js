@@ -21,6 +21,7 @@ var CarBooth = function(options){
     this.textureCube;
     this.pointLight;
     this.controls;
+    this.carObject3D;
 
     this.init_(options);
 }
@@ -51,7 +52,7 @@ CarBooth.prototype.init_ = function(options){
         this.orbitPolarAngleOffset = options.orbitPolarAngleOffset || 0.055;
         this.orbitMinDistance = options.orbitMinDistance || 110;
         this.orbitMaxDistance = options.orbitMaxDistance || 120;
-        this.orbitAutoRotate = options.orbitAutoRotate || true;
+        this.orbitAutoRotate = options.orbitAutoRotate != undefined ? options.orbitAutoRotate : true;
 
         //设置灯光参数
         this.pointLightX = options.pointLightX || 0;
@@ -59,6 +60,9 @@ CarBooth.prototype.init_ = function(options){
         this.pointLightZ = options.pointLightZ || 0;
         this.pointLightIntensity = options.pointLightIntensity || 2.0;
         this.pointLightDistance = options.pointLightDistance || 1000;
+
+        //设置汽车模型参数
+        this.carRotateY = options.carRotateY || (-0.25 * Math.PI);
     };
 
     //初始化场景
@@ -85,6 +89,11 @@ CarBooth.prototype.init_ = function(options){
     this.pointLight.intensity = self.controls.pointLightIntensity;
     this.pointLight.distance = self.controls.pointLightDistance;
     this.scene.add(this.pointLight);
+
+    //初始化汽车模型对象
+    this.carObject3D = new THREE.Object3D();
+    this.carObject3D.rotation.y = self.controls.carRotateY;
+    this.scene.add(this.carObject3D);
 
     var domParent = document.getElementById(self.renderDomId) || document.body;
     domParent.appendChild(self.renderer.domElement);
@@ -122,14 +131,16 @@ CarBooth.prototype.loadCarDynamicPart = function(name, carObjects, options){
 
     var bodyColor = options.bodyColor;
     var wheelColor = options.wheelColor;
+    var wheelPosition = options.wheelPosition;
 
     var meshName = "car_dynamic_part";
-    var object3D = self.scene.getObjectByName(meshName);
+    var object3D = self.carObject3D.getObjectByName(meshName);
     if(object3D){
-        self.scene.remove(object3D);
+        self.carObject3D.remove(object3D);
     }
 
     object3D = new THREE.Object3D();
+    object3D.name = meshName;
 
     var body_mesh = carObjects.objects[name + "_body"];
     if(body_mesh){
@@ -166,12 +177,7 @@ CarBooth.prototype.loadCarDynamicPart = function(name, carObjects, options){
         }
         wheelObject3D.add(rim_mesh);
 
-        [
-            {x: -16, z: 27, rotateY: 0},
-            {x: 16, z: 27, rotateY: -Math.PI},
-            {x: -16, z: -24.5, rotateY: 0},
-            {x: 16, z: -24.5, rotateY: -Math.PI}
-        ].forEach(function(item){
+        wheelPosition.forEach(function(item){
             var transWheelObject = wheelObject3D.clone();
             transWheelObject.position.x = item.x;
             transWheelObject.position.z = item.z;
@@ -181,7 +187,7 @@ CarBooth.prototype.loadCarDynamicPart = function(name, carObjects, options){
         });
     }
 
-    self.scene.add(object3D);
+    self.carObject3D.add(object3D);
 }
 
 /**
@@ -189,7 +195,7 @@ CarBooth.prototype.loadCarDynamicPart = function(name, carObjects, options){
  * @param name
  * @param carObjects
  */
-CarBooth.prototype.loadCarStaticPart = function(name, carObjects){
+CarBooth.prototype.loadCarStaticPart = function(name, carObjects, options){
     if(!name){
         throw "name不能为空";
     }
@@ -198,12 +204,16 @@ CarBooth.prototype.loadCarStaticPart = function(name, carObjects){
         throw "carObjects不能为空";
     }
 
+    options = options || {};
+
+    var textueName = options.textureName || name;
+
     var self = this;
     var meshName = "car_static_part";
 
-    var object3D = self.scene.getObjectByName(meshName);
+    var object3D = self.carObject3D.getObjectByName(meshName);
     if(object3D){
-        self.scene.remove(object3D);
+        self.carObject3D.remove(object3D);
     }
 
     object3D = new THREE.Object3D();
@@ -233,7 +243,7 @@ CarBooth.prototype.loadCarStaticPart = function(name, carObjects){
     if(interior_mesh){
         interior_mesh.scale.set(0.1, 0.1, 0.1);
         var interior_material = interior_mesh.material.materials[0];
-        interior_material.map = THREE.ImageUtils.loadTexture("assets/textures/" + name + "/i01.jpg");
+        interior_material.map = THREE.ImageUtils.loadTexture("assets/textures/" + textueName + "/i01.jpg");
         object3D.add(interior_mesh);
     }
 
@@ -241,12 +251,17 @@ CarBooth.prototype.loadCarStaticPart = function(name, carObjects){
     if(shadow_mesh){
         shadow_mesh.scale.set(0.1, 0.1, 0.1);
         var shadow_material = shadow_mesh.material.materials[0];
-        shadow_material.map = THREE.ImageUtils.loadTexture("assets/textures/" + name + "/s01.png");
-        shadow_material.transparent = true;
+
+        THREE.ImageUtils.loadTexture("assets/textures/" + textueName + "/s01.png", THREE.Texture.DEFAULT_MAPPING, function(texture){
+            shadow_material.map = texture;
+            shadow_material.transparent = true;
+            shadow_material.needsUpdate = true;
+        });
+
         object3D.add(shadow_mesh);
     }
 
-    self.scene.add(object3D);
+    self.carObject3D.add(object3D);
 }
 
 /**
@@ -361,12 +376,31 @@ CarBooth.prototype.render_ = function(){
     self.renderer.render(self.scene, self.camera);
 }
 
-
 window.onload = function(){
-    var carBooth = new CarBooth({renderDomId: "webgl-output"});
+    var carBooth = new CarBooth({renderDomId: "webgl-output", orbitAutoRotate: true});
     carBooth.loadScene(function(object){
-        carBooth.loadCarStaticPart("camaro", object);
-        carBooth.loadCarDynamicPart("camaro", object, {bodyColor: 0xff0000, wheelColor: 0x00ff00});
+        var currentCar = {name: "mercedes", textureName: "mercedes", bodyColor: "#ff0000", wheelColor: "#00ff00"};
+
+        var exChangeCar = function(car){
+            car = car || {};
+
+            currentCar.name = car.name || currentCar.name;
+            currentCar.textureName = car.textureName || currentCar.textureName;
+            currentCar.bodyColor = car.bodyColor || currentCar.bodyColor;
+            currentCar.wheelColor = car.wheelColor || currentCar.wheelColor;
+
+            carBooth.loadCarStaticPart(currentCar.name, object, {textureName: currentCar.textureName });
+            carBooth.loadCarDynamicPart(currentCar.name, object, {bodyColor: currentCar.bodyColor, wheelColor: currentCar.wheelColor, wheelPosition: Wheels.wheelLocations[currentCar.name]});
+        }
+        if(window.eventDispatcher){
+            window.eventDispatcher.on("carChange", function(event){
+                if(event.data){
+                    exChangeCar(event.data);
+                }
+            });
+        }
+        exChangeCar();
+
     }, function(event){
 
     }, function(event){
