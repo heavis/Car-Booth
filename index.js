@@ -58,7 +58,7 @@ CarBooth.prototype.init_ = function(options){
         this.pointLightX = options.pointLightX || 0;
         this.pointLightY = options.pointLightY || 50;
         this.pointLightZ = options.pointLightZ || 0;
-        this.pointLightIntensity = options.pointLightIntensity || 2.0;
+        this.pointLightIntensity = options.pointLightIntensity || 1.2;
         this.pointLightDistance = options.pointLightDistance || 1000;
 
         //设置汽车模型参数
@@ -145,13 +145,16 @@ CarBooth.prototype.loadCarDynamicPart = function(name, carObjects, options){
     var body_mesh = carObjects.objects[name + "_body"];
     if(body_mesh){
         body_mesh.scale.set(0.1, 0.1, 0.1);
-        var body_material = body_mesh.material.materials[0];
+        var body_material = body_mesh.material.materials[0] = new THREE.MeshPhongMaterial();
         body_material.envMap = self.textureCube;
         body_material.transparent = true;
-        body_material.reflectivity = 0.53;
+        body_material.reflectivity = 0.8;
+        body_material.side = THREE.DoubleSide;
         if(bodyColor){
             body_material.color = new THREE.Color(bodyColor, 1.0);
             body_material.ambient = new THREE.Color(bodyColor, 1.0);
+
+            window.material = body_material;
         }
         object3D.add(body_mesh);
     }
@@ -163,6 +166,7 @@ CarBooth.prototype.loadCarDynamicPart = function(name, carObjects, options){
 
         wheel_mesh.scale.set(0.1, 0.1, 0.1);
         var wheel_material = wheel_mesh.material.materials[0];
+        wheel_material.side = THREE.DoubleSide;
         wheel_material.map = THREE.ImageUtils.loadTexture("assets/textures/autoparts/wheel.png");
 
         wheelObject3D.add(wheel_mesh);
@@ -171,6 +175,7 @@ CarBooth.prototype.loadCarDynamicPart = function(name, carObjects, options){
         var rim_material = rim_mesh.material.materials[0];
         rim_material.envMap = self.textureCube;
         rim_material.reflectivity = 0.7;
+        rim_material.side = THREE.DoubleSide;
         if(wheelColor){
             rim_material.color = new THREE.Color(wheelColor, 1.0);
             rim_material.ambient = new THREE.Color(wheelColor, 1.0);
@@ -225,6 +230,7 @@ CarBooth.prototype.loadCarStaticPart = function(name, carObjects, options){
         var bumper_material = bumper_mesh.material.materials[0];
         bumper_material.transparent = true;
         bumper_material.envMap = self.textureCube;
+        bumper_material.side = THREE.DoubleSide;
         bumper_material.reflectivity = 0.8;
         object3D.add(bumper_mesh);
     }
@@ -234,6 +240,7 @@ CarBooth.prototype.loadCarStaticPart = function(name, carObjects, options){
         glass_mesh.scale.set(0.1, 0.1, 0.1);
         var glass_material = glass_mesh.material.materials[0];
         glass_material.transparent = true;
+        glass_material.side = THREE.DoubleSide;
         glass_material.envMap = self.textureCube;
         glass_material.opacity = 0.4;
         object3D.add(glass_mesh);
@@ -243,6 +250,7 @@ CarBooth.prototype.loadCarStaticPart = function(name, carObjects, options){
     if(interior_mesh){
         interior_mesh.scale.set(0.1, 0.1, 0.1);
         var interior_material = interior_mesh.material.materials[0];
+        interior_material.side = THREE.DoubleSide;
         interior_material.map = THREE.ImageUtils.loadTexture("assets/textures/" + textueName + "/i01.jpg");
         object3D.add(interior_mesh);
     }
@@ -261,7 +269,7 @@ CarBooth.prototype.loadCarStaticPart = function(name, carObjects, options){
         object3D.add(shadow_mesh);
     }
 
-    self.carObject3D.add(object3D);
+   self.carObject3D.add(object3D);
 }
 
 /**
