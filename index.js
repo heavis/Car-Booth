@@ -65,6 +65,10 @@ CarBooth.prototype.init_ = function(options){
         this.carRotateY = options.carRotateY || (-0.25 * Math.PI);
     };
 
+    if(options.debug){
+        this.loadDebug_();
+    }
+
     //初始化场景
     this.scene = new THREE.Scene();
     this.scene.position.set(self.controls.sceneX, self.controls.sceneY, self.controls.sceneZ);
@@ -145,14 +149,14 @@ CarBooth.prototype.loadCarDynamicPart = function(name, carObjects, options){
     var body_mesh = carObjects.objects[name + "_body"];
     if(body_mesh){
         body_mesh.scale.set(0.1, 0.1, 0.1);
-        var body_material = body_mesh.material.materials[0] = new THREE.MeshPhongMaterial();
+        var body_material = body_mesh.material.materials[0];
         body_material.envMap = self.textureCube;
-        body_material.transparent = true;
-        body_material.reflectivity = 0.8;
+        //body_material.transparent = true;
+        body_material.reflectivity = 0.6;
         body_material.side = THREE.DoubleSide;
         if(bodyColor){
             body_material.color = new THREE.Color(bodyColor, 1.0);
-            body_material.ambient = new THREE.Color(bodyColor, 1.0);
+            body_material.ambient = new THREE.Color("white", 0.5);
 
             window.material = body_material;
         }
@@ -169,7 +173,7 @@ CarBooth.prototype.loadCarDynamicPart = function(name, carObjects, options){
         wheel_material.side = THREE.DoubleSide;
         wheel_material.map = THREE.ImageUtils.loadTexture("assets/textures/autoparts/wheel.png");
 
-        wheelObject3D.add(wheel_mesh);
+        //wheelObject3D.add(wheel_mesh);
 
         rim_mesh.scale.set(0.1, 0.1, 0.1);
         var rim_material = rim_mesh.material.materials[0];
@@ -178,9 +182,9 @@ CarBooth.prototype.loadCarDynamicPart = function(name, carObjects, options){
         rim_material.side = THREE.DoubleSide;
         if(wheelColor){
             rim_material.color = new THREE.Color(wheelColor, 1.0);
-            rim_material.ambient = new THREE.Color(wheelColor, 1.0);
+            rim_material.emissive = new THREE.Color(wheelColor, 1.0);
         }
-        wheelObject3D.add(rim_mesh);
+        //wheelObject3D.add(rim_mesh);
 
         wheelPosition.forEach(function(item){
             var transWheelObject = wheelObject3D.clone();
@@ -243,7 +247,7 @@ CarBooth.prototype.loadCarStaticPart = function(name, carObjects, options){
         glass_material.side = THREE.DoubleSide;
         glass_material.envMap = self.textureCube;
         glass_material.opacity = 0.4;
-        object3D.add(glass_mesh);
+        //object3D.add(glass_mesh);
     }
 
     var interior_mesh = carObjects.objects[name + "_interior"];
@@ -252,7 +256,7 @@ CarBooth.prototype.loadCarStaticPart = function(name, carObjects, options){
         var interior_material = interior_mesh.material.materials[0];
         interior_material.side = THREE.DoubleSide;
         interior_material.map = THREE.ImageUtils.loadTexture("assets/textures/" + textueName + "/i01.jpg");
-        object3D.add(interior_mesh);
+        //object3D.add(interior_mesh);
     }
 
     var shadow_mesh = carObjects.objects["car_shadow"];
@@ -266,10 +270,27 @@ CarBooth.prototype.loadCarStaticPart = function(name, carObjects, options){
             shadow_material.needsUpdate = true;
         });
 
-        object3D.add(shadow_mesh);
+        //object3D.add(shadow_mesh);
     }
 
    self.carObject3D.add(object3D);
+}
+
+/**
+ * 加载控制面板
+ * @private
+ */
+CarBooth.prototype.loadDebug_ = function(){
+    var self  = this, controls = this.controls;
+    controls.change = function(){
+        self.pointLight.position.set(controls.pointLightX, controls.pointLightY, controls.pointLightZ);
+    }
+
+    var gui = new dat.GUI();
+    gui.addFolder("Light");
+    gui.add(controls, "pointLightX", -1000, 1000).onChange(controls.change);
+    gui.add(controls, "pointLightY", -1000, 1000).onChange(controls.change);
+    gui.add(controls, "pointLightZ", -1000, 1000).onChange(controls.change);
 }
 
 /**
@@ -385,7 +406,13 @@ CarBooth.prototype.render_ = function(){
 }
 
 window.onload = function(){
-    var carBooth = new CarBooth({renderDomId: "webgl-output", orbitAutoRotate: true});
+    if(!window.eventDispatcher){
+        throw "未加载eventDispatcher库";
+    }
+
+    var loadingUI = new LoadingUI({parent: document.body, desc:　"汽车展厅"});
+
+    var carBooth = new CarBooth({renderDomId: "webgl-output", orbitAutoRotate: true, debug: true});
     carBooth.loadScene(function(object){
         var currentCar = {name: "mercedes", textureName: "mercedes", bodyColor: "#ff0000", wheelColor: "#00ff00"};
 
@@ -400,20 +427,24 @@ window.onload = function(){
             carBooth.loadCarStaticPart(currentCar.name, object, {textureName: currentCar.textureName });
             carBooth.loadCarDynamicPart(currentCar.name, object, {bodyColor: currentCar.bodyColor, wheelColor: currentCar.wheelColor, wheelPosition: Wheels.wheelLocations[currentCar.name]});
         }
-        if(window.eventDispatcher){
-            window.eventDispatcher.on("carChange", function(event){
-                if(event.data){
-                    exChangeCar(event.data);
-                }
-            });
-        }
         exChangeCar();
 
+        window.eventDispatcher.on("carChange", function(event){
+            if(event.data){
+                exChangeCar(event.data);
+            }
+        });
+        setTimeout(function(){
+            loadingUI.finish();
+            window.eventDispatcher.dispatchEvent("onload");
+        }, 800);
     }, function(event){
-
+        loadingUI.setProgress(100 * (event.loaded/event.total));
     }, function(event){
 
     });
 }
+
+
 
 
