@@ -2,8 +2,17 @@
  * UI交互控制
  */
 
-(function(context){
-    context = context || window;
+if(!window.eventDispatcher){
+    throw "未加载eventDispatcher库";
+}
+
+window.eventDispatcher.on("onload", function(){
+    var webglOutput = document.getElementById("webgl-output");
+    webglOutput.style.width = window.innerWidth + "px";
+    webglOutput.style.height = window.innerHeight + "px";
+
+    var scene3d = document.getElementById("scene3d");
+    scene3d.style.display = "inherit";
 
     //处理汽车交换器
     var menus = document.createElement("div");
@@ -96,6 +105,25 @@
         });
     });
 
+    //音乐播放控制
+    var audio = document.createElement("audio");
+    audio.setAttribute("id", "bgMusic");
+    audio.volume = 0.5;
+    audio.loop = true;
+    audio.setAttribute("src", "assets/images/bg.mp3");
+    //audio.play();
+    var volumeBtn = document.getElementById("volumeBtn");
+    volumeBtn.addEventListener("click", function(event){
+        var path = "assets/images/", imgDom = volumeBtn.children[0];
+        if(!audio.muted){
+            imgDom.src = path + "volumeOff.png";
+            audio.muted = true;
+        }else{
+            imgDom.src = path + "volumeOn.png";
+            audio.muted = false;
+        }
+    });
+
     function toStringWithArgs(){
         var args = arguments;
 
@@ -115,4 +143,4 @@
             return undefined;
         }
     }
-})(window);
+});
