@@ -8,8 +8,8 @@ if(!window.eventDispatcher){
 
 window.eventDispatcher.on("onload", function(event){
     var webglOutput = document.getElementById("webgl-output");
-    webglOutput.style.width = window.innerWidth + "px";
-    webglOutput.style.height = window.innerHeight + "px";
+    //webglOutput.style.width = window.innerWidth + "px";
+    //webglOutput.style.height = window.innerHeight + "px";
 
     var scene3d = document.getElementById("scene3d");
     scene3d.style.display = "inherit";

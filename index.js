@@ -117,6 +117,22 @@ CarBooth.prototype.init_ = function(options){
 }
 
 /**
+ * 更新画布尺寸
+ * @param width
+ * @param height
+ */
+CarBooth.prototype.updateSize = function(width, height){
+    if(isNaN(width) || isNaN(height)){
+        throw "width和height必须是数字";
+    }
+    this.width = width;
+    this.height = height;
+
+    this.renderer.setSize(this.width, this.height);
+    this.camera.aspect = this.width/this.height;
+}
+
+/**
  * 加载场景模型
  * @param doneHandler
  * @param progressHandler
@@ -455,6 +471,9 @@ window.onload = function(){
             loadingUI.finish();
             window.eventDispatcher.dispatchEvent("onload", currentCar);
         }, 800);
+        window.addEventListener("resize", function(){
+            carBooth.updateSize(window.innerWidth, window.innerHeight);
+        });
     }, function(event){
         loadingUI.setProgress(100 * (event.loaded/event.total));
     }, function(event){
