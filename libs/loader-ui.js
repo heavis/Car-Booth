@@ -40,7 +40,7 @@ LoadingUI.prototype.init = function(options){
 
     this.parent.appendChild(this.container);
 
-    this.load3D_();
+    //this.load3D_();
 }
 
 LoadingUI.prototype.load3D_ = function(){

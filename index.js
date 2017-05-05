@@ -20,6 +20,7 @@ var CarBooth = function(options){
     this.orbitControl;
     this.textureCube;
     this.pointLight;
+    this.directionLight;
     this.controls;
     this.carObject3D;
 
@@ -37,19 +38,19 @@ CarBooth.prototype.init_ = function(options){
     this.controls = new function(){
         //设置场景参数
         this.sceneX = options.sceneX || 0;
-        this.sceneY = options.sceneY || -28;
+        this.sceneY = options.sceneY || -20;
         this.sceneZ = options.sceneZ || 0;
 
         //设置摄像头参数
         this.cameraX = options.cameraX || 7;
-        this.cameraY = options.cameraY || 26;
+        this.cameraY = options.cameraY || 40;
         this.cameraZ = options.cameraZ || 97;
         this.cameraLookAtX = options.cameraLookAtX || 0;
-        this.cameraLookAtY = options.cameraLookAtY || 100;
+        this.cameraLookAtY = options.cameraLookAtY || 0;
         this.cameraLookAtZ = options.cameraLookAtZ || 0;
 
         //设置轨迹飞行器参数
-        this.orbitPolarAngleOffset = options.orbitPolarAngleOffset || 0.055;
+        this.orbitPolarAngleOffset = options.orbitPolarAngleOffset || 0.005;
         this.orbitMinDistance = options.orbitMinDistance || 110;
         this.orbitMaxDistance = options.orbitMaxDistance || 120;
         this.orbitAutoRotate = options.orbitAutoRotate != undefined ? options.orbitAutoRotate : true;
@@ -60,6 +61,11 @@ CarBooth.prototype.init_ = function(options){
         this.pointLightZ = options.pointLightZ || 0;
         this.pointLightIntensity = options.pointLightIntensity || 1.2;
         this.pointLightDistance = options.pointLightDistance || 1000;
+
+        this.directionLightX = options.directionLight || 30;
+        this.directionLightY = options.directionLightY || 30;
+        this.directionLightZ = options.directionLightZ || 40;
+        this.directionLightIntensity = options.directionLightIntensity || 0.72;
 
         //设置汽车模型参数
         this.carRotateY = options.carRotateY || (-0.25 * Math.PI);
@@ -77,7 +83,7 @@ CarBooth.prototype.init_ = function(options){
     this.camera.position.set(self.controls.cameraX, self.controls.cameraY, self.controls.cameraZ);
     this.camera.lookAt(new THREE.Vector3(self.controls.cameraLookAtX, self.controls.cameraLookAtY, self.controls.cameraLookAtZ));
 
-    this.renderer = new THREE.WebGLRenderer();
+    this.renderer = new THREE.WebGLRenderer({antalize: true});
     this.renderer.setClearColor(new THREE.Color(0x000000), 1.0);
     this.renderer.setSize(self.width, self.height);
     this.renderer.shadowMapEnabled = true;
@@ -85,7 +91,7 @@ CarBooth.prototype.init_ = function(options){
     this.orbitControl = this.createOrbitControl_();
     this.textureCube = this.createCubeMap_();
 
-    var ambientLight = new THREE.AmbientLight(0xffffff);
+    var ambientLight = new THREE.AmbientLight(0x050505);
     this.scene.add(ambientLight);
 
     this.pointLight = new THREE.PointLight(0xffffff);
@@ -93,6 +99,11 @@ CarBooth.prototype.init_ = function(options){
     this.pointLight.intensity = self.controls.pointLightIntensity;
     this.pointLight.distance = self.controls.pointLightDistance;
     this.scene.add(this.pointLight);
+
+    this.directionLight = new THREE.DirectionalLight(0xffffff);
+    this.directionLight.intensity = this.controls.directionLightIntensity;
+    this.directionLight.position.set(self.controls.directionLightX, self.controls.directionLightY, self.controls.directionLightZ);
+    this.scene.add(this.directionLight);
 
     //初始化汽车模型对象
     this.carObject3D = new THREE.Object3D();
@@ -149,17 +160,7 @@ CarBooth.prototype.loadCarDynamicPart = function(name, carObjects, options){
     var body_mesh = carObjects.objects[name + "_body"];
     if(body_mesh){
         body_mesh.scale.set(0.1, 0.1, 0.1);
-        var body_material = body_mesh.material.materials[0];
-        body_material.envMap = self.textureCube;
-        //body_material.transparent = true;
-        body_material.reflectivity = 0.6;
-        body_material.side = THREE.DoubleSide;
-        if(bodyColor){
-            body_material.color = new THREE.Color(bodyColor, 1.0);
-            body_material.ambient = new THREE.Color("white", 0.5);
-
-            window.material = body_material;
-        }
+        body_mesh.material.materials[0] = new THREE.MeshLambertMaterial({color: (bodyColor || 0xff6600) , envMap: self.textureCube, combine: THREE.MixOperation, reflectivity: 0.3 });
         object3D.add(body_mesh);
     }
 
@@ -169,22 +170,17 @@ CarBooth.prototype.loadCarDynamicPart = function(name, carObjects, options){
         var wheelObject3D = new THREE.Object3D();
 
         wheel_mesh.scale.set(0.1, 0.1, 0.1);
-        var wheel_material = wheel_mesh.material.materials[0];
-        wheel_material.side = THREE.DoubleSide;
-        wheel_material.map = THREE.ImageUtils.loadTexture("assets/textures/autoparts/wheel.png");
-
-        //wheelObject3D.add(wheel_mesh);
+        wheel_mesh.material.materials[0] = new THREE.MeshLambertMaterial({
+                map: THREE.ImageUtils.loadTexture("assets/textures/autoparts/wheel.png"),
+                combine: THREE.MixOperation,
+                envMap: self.textureCube,
+                reflectivity: 0.1
+            });
+        wheelObject3D.add(wheel_mesh);
 
         rim_mesh.scale.set(0.1, 0.1, 0.1);
-        var rim_material = rim_mesh.material.materials[0];
-        rim_material.envMap = self.textureCube;
-        rim_material.reflectivity = 0.7;
-        rim_material.side = THREE.DoubleSide;
-        if(wheelColor){
-            rim_material.color = new THREE.Color(wheelColor, 1.0);
-            rim_material.emissive = new THREE.Color(wheelColor, 1.0);
-        }
-        //wheelObject3D.add(rim_mesh);
+       rim_mesh.material.materials[0] = new THREE.MeshLambertMaterial({color: (wheelColor || 0xff6600) , envMap: self.textureCube, combine: THREE.MixOperation, reflectivity: 0.3 });
+        wheelObject3D.add(rim_mesh);
 
         wheelPosition.forEach(function(item){
             var transWheelObject = wheelObject3D.clone();
@@ -231,32 +227,37 @@ CarBooth.prototype.loadCarStaticPart = function(name, carObjects, options){
     var bumper_mesh = carObjects.objects[name + "_bumper"];
     if(bumper_mesh){
         bumper_mesh.scale.set(0.1, 0.1, 0.1);
-        var bumper_material = bumper_mesh.material.materials[0];
-        bumper_material.transparent = true;
-        bumper_material.envMap = self.textureCube;
-        bumper_material.side = THREE.DoubleSide;
-        bumper_material.reflectivity = 0.8;
+        bumper_mesh.material.materials[0] = new THREE.MeshLambertMaterial({ color: 0x312520, envMap: self.textureCube, combine: THREE.MixOperation, reflectivity: 0.3 });
+
         object3D.add(bumper_mesh);
     }
 
     var glass_mesh = carObjects.objects[name + "_glass"];
     if(glass_mesh){
         glass_mesh.scale.set(0.1, 0.1, 0.1);
-        var glass_material = glass_mesh.material.materials[0];
-        glass_material.transparent = true;
-        glass_material.side = THREE.DoubleSide;
-        glass_material.envMap = self.textureCube;
-        glass_material.opacity = 0.4;
-        //object3D.add(glass_mesh);
+        var glass_material = glass_mesh.material.materials[0] = new THREE.MeshLambertMaterial({
+            color: 0x312520,
+            envMap: self.textureCube,
+            combine: THREE.MixOperation,
+            reflectivity: 0.3,
+            transparent: true,
+            opacity: 0.5
+        });
+        //glass_material.transparent = true;
+        //glass_material.side = THREE.DoubleSide;
+        //glass_material.envMap = self.textureCube;
+        //glass_material.opacity = 0.4;
+        object3D.add(glass_mesh);
     }
 
     var interior_mesh = carObjects.objects[name + "_interior"];
     if(interior_mesh){
         interior_mesh.scale.set(0.1, 0.1, 0.1);
-        var interior_material = interior_mesh.material.materials[0];
-        interior_material.side = THREE.DoubleSide;
-        interior_material.map = THREE.ImageUtils.loadTexture("assets/textures/" + textueName + "/i01.jpg");
-        //object3D.add(interior_mesh);
+        var interior_material = interior_mesh.material.materials[0] = new THREE.MeshLambertMaterial({
+            map: THREE.ImageUtils.loadTexture("assets/textures/" + textueName + "/i01.jpg"),
+            combine: THREE.MixOperation
+        });;
+        object3D.add(interior_mesh);
     }
 
     var shadow_mesh = carObjects.objects["car_shadow"];
@@ -270,7 +271,7 @@ CarBooth.prototype.loadCarStaticPart = function(name, carObjects, options){
             shadow_material.needsUpdate = true;
         });
 
-        //object3D.add(shadow_mesh);
+        object3D.add(shadow_mesh);
     }
 
    self.carObject3D.add(object3D);
@@ -284,6 +285,11 @@ CarBooth.prototype.loadDebug_ = function(){
     var self  = this, controls = this.controls;
     controls.change = function(){
         self.pointLight.position.set(controls.pointLightX, controls.pointLightY, controls.pointLightZ);
+        self.directionLight.position.set(controls.directionLightX, controls.directionLightY, controls.directionLightZ);
+        self.directionLight.intensity = controls.directionLightIntensity;
+
+        self.scene.position.set(self.controls.sceneX, self.controls.sceneY, controls.sceneZ);
+        self.camera.position.set(self.controls.cameraX, self.controls.cameraY, controls.cameraZ);
     }
 
     var gui = new dat.GUI();
@@ -291,6 +297,17 @@ CarBooth.prototype.loadDebug_ = function(){
     gui.add(controls, "pointLightX", -1000, 1000).onChange(controls.change);
     gui.add(controls, "pointLightY", -1000, 1000).onChange(controls.change);
     gui.add(controls, "pointLightZ", -1000, 1000).onChange(controls.change);
+    gui.add(controls, "directionLightX", -1000, 1000).onChange(controls.change);
+    gui.add(controls, "directionLightY", -500, 500).onChange(controls.change);
+    gui.add(controls, "directionLightZ", -500, 500).onChange(controls.change);
+    gui.add(controls, "directionLightIntensity", 0, 1).onChange(controls.change);
+    gui.add(controls, "sceneX", -150, 150).step(10).onChange(controls.change);
+    gui.add(controls, "sceneY", -150, 150).step(10).onChange(controls.change);
+    gui.add(controls, "sceneZ", -150, 150).step(10).onChange(controls.change);
+    gui.addFolder("Camera");
+    gui.add(controls, "cameraX", -150, 150).step(10).onChange(controls.change);
+    gui.add(controls, "cameraY", -150, 150).step(10).onChange(controls.change);
+    gui.add(controls, "cameraZ", -150, 150).step(10).onChange(controls.change);
 }
 
 /**
@@ -337,7 +354,7 @@ CarBooth.prototype.createCubeMap_ = function() {
         path + "positiveZ" + format, path + "negativeZ" + format
     ];
 
-    var textureCube = THREE.ImageUtils.loadTextureCube(urls, THREE.CubeReflectionMapping());
+    var textureCube = THREE.ImageUtils.loadTextureCube(urls, THREE.CubeReflectionMapping);
 
     return textureCube;
 }
@@ -397,7 +414,7 @@ CarBooth.prototype.loadGarageObjects_ = function(object){
  */
 CarBooth.prototype.render_ = function(){
     var self = this;
-
+    self.directionLight.position.copy(self.camera.position);
     self.orbitControl.update();
     requestAnimationFrame(function(){
         self.render_.apply(self);
@@ -410,11 +427,11 @@ window.onload = function(){
         throw "未加载eventDispatcher库";
     }
 
-    var loadingUI = new LoadingUI({parent: document.body, desc:　"汽车展厅"});
+    var loadingUI = new LoadingUI({parent: document.body, desc:　"Car Booth"});
 
-    var carBooth = new CarBooth({renderDomId: "webgl-output", orbitAutoRotate: true, debug: true});
+    var carBooth = new CarBooth({renderDomId: "webgl-output", orbitAutoRotate: true, debug: false});
     carBooth.loadScene(function(object){
-        var currentCar = {name: "mercedes", textureName: "mercedes", bodyColor: "#ff0000", wheelColor: "#00ff00"};
+        var currentCar = {name: "lancer", textureName: "lancer", bodyColor: 0xff6600, wheelColor: 0x222222};
 
         var exChangeCar = function(car){
             car = car || {};
@@ -436,7 +453,7 @@ window.onload = function(){
         });
         setTimeout(function(){
             loadingUI.finish();
-            window.eventDispatcher.dispatchEvent("onload");
+            window.eventDispatcher.dispatchEvent("onload", currentCar);
         }, 800);
     }, function(event){
         loadingUI.setProgress(100 * (event.loaded/event.total));

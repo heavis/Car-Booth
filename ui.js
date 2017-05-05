@@ -6,7 +6,7 @@ if(!window.eventDispatcher){
     throw "未加载eventDispatcher库";
 }
 
-window.eventDispatcher.on("onload", function(){
+window.eventDispatcher.on("onload", function(event){
     var webglOutput = document.getElementById("webgl-output");
     webglOutput.style.width = window.innerWidth + "px";
     webglOutput.style.height = window.innerHeight + "px";
@@ -49,6 +49,10 @@ window.eventDispatcher.on("onload", function(){
         }else{
             menus.style.visibility = "hidden";
         }
+
+        event.preventDefault();
+        if(event.stopPropagation) event.stopPropagation();
+        else event.cancelBubble = true;
     });
     menus.addEventListener("click", function(event){
         var target = event.target;
@@ -65,6 +69,10 @@ window.eventDispatcher.on("onload", function(){
         if(window.eventDispatcher){
             window.eventDispatcher.dispatchEvent("carChange",{name: name, textureName: textureName});
         }
+
+        event.preventDefault();
+        if(event.stopPropagation) event.stopPropagation();
+        else event.cancelBubble = true;
     });
 
     //设置车身和轮胎颜色按钮
@@ -110,8 +118,8 @@ window.eventDispatcher.on("onload", function(){
     audio.setAttribute("id", "bgMusic");
     audio.volume = 0.5;
     audio.loop = true;
-    audio.setAttribute("src", "assets/images/bg.mp3");
-    //audio.play();
+    audio.setAttribute("src", "assets/audio/bg.mp3");
+    audio.play();
     var volumeBtn = document.getElementById("volumeBtn");
     volumeBtn.addEventListener("click", function(event){
         var path = "assets/images/", imgDom = volumeBtn.children[0];
@@ -121,6 +129,13 @@ window.eventDispatcher.on("onload", function(){
         }else{
             imgDom.src = path + "volumeOn.png";
             audio.muted = false;
+        }
+    });
+
+    //全局控制
+    document.addEventListener("click", function(){
+        if(menus.style.visibility === "visible"){
+            menus.style.visibility = "hidden";
         }
     });
 
